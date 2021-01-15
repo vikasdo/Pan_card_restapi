@@ -1,4 +1,7 @@
 
+**`Documentation`** |
+------------------- |
+[![Documentation](https://img.shields.io/badge/api-reference-blue.svg)](https://www.tensorflow.org/api_docs/) |
 
 
   CREATE A TOKEN using this url
