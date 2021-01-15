@@ -6,19 +6,39 @@ api = Api(app)
 import time
 import string 
 import random 
-
+# from models import User,PanClient
 from flask import Flask, jsonify, request
 from flask_jwt_extended import (
     JWTManager, jwt_required, create_access_token,
     get_jwt_identity
 )
+from flask_mongoengine import MongoEngine
+import re
+app.config['MONGODB_SETTINGS'] = {
+    'db': 'user',
+    'host': 'mongodb+srv://vikas:123@cluster0.bj4nr.mongodb.net/user?retryWrites=true&w=majority',
+  
+}
+db = MongoEngine()
+db.init_app(app)
+
+# MODELS 
+class User(db.Document):
+    token = db.StringField()
+
+class PanClient(db.Document):
+    pan=db.StringField()
+    name = db.StringField()
+    dob=db.DateTimeField()
+    father_name = db.StringField()
+    client_id=db.StringField()
 
 
 # Setup the Flask-JWT-Extended extension
 app.config['JWT_SECRET_KEY'] = 'secret_vikas_12AS'  # Change this!
 jwt = JWTManager(app)
 
-import re
+
  
 
 def isValidPanCardNo(panCardNo):
@@ -55,41 +75,11 @@ class login(Resource):
    def get(self):
         # Identity can be any data that is json serializable
         access_token = create_access_token(identity=time.time())
+        User( token=access_token).save()
+
         return (access_token)
 
 
-# Protect a view with jwt_required, which requires a valid access token
-# in the request to access.
-# @app.route('/getclientid', methods=['POST'])
-# @jwt_required
-# def getclientid():
-#     # Access the identity of the current user with get_jwt_identity
-#     # current_user = get_jwt_identity()
-
-#     pannumber = request.json.get('pannumber', None)
-#     if not pannumber:
-#         return jsonify({"msg": "Missing pannumber parameter"}), 400
-
-#     if not  isValidPanCardNo(pannumber):
-#         return jsonify({"msg": "Not a Valid pannumber format "}), 401
-#     # print(pannumber)
-
-  
-#     # initializing size of string  
-#     N = 7
-      
-
-#     client_id = ''.join(random.choices(string.ascii_uppercase +
-#                                  string.digits, k = N)) 
-#     try:
-#         pan_card[client_id]=get_pan_data(pannumber)
-
-#     except:
-#         return jsonify({"msg": "Sorry Backend error Try again..."}), 400
-
-
-
-#     return jsonify(client_id=client_id), 200
 
 
 @api.route('/getclientid')
@@ -107,28 +97,30 @@ class Getclientid(Resource):
     def post(self):
         pannumber = request.json.get('pannumber', None)
         if not pannumber:
-            return {"msg": "Missing pannumber parameter"}
+            return {"msg": "Missing pannumber parameter"},400
 
         if not  isValidPanCardNo(pannumber):
-            return {"msg": "Not a Valid pannumber format "}
-        # print(pannumber)
+            return {"msg": "Not a Valid pannumber format "},400
 
       
         # initializing size of string  
         N = 7
           
 
-        client_id = ''.join(random.choices(string.ascii_uppercase +
+        client_id_s= ''.join(random.choices(string.ascii_uppercase +
                                      string.digits, k = N)) 
         try:
-            pan_card[client_id]=get_pan_data(pannumber)
+            pan_card=get_pan_data(pannumber)
+            PanClient(pan=pan_card['pan'],name=pan_card['name'],dob=str(pan_card['dob']),father_name=pan_card['father_name'],client_id=client_id_s).save()
+            print(pan_card)
+        except Exception as e:
+            print(e)
 
-        except:
             return ({"msg": "Sorry Backend error Try again..."}), 400
 
 
 
-        return (client_id), 200
+        return (client_id_s), 200
 
 
 @api.route('/getinfo')
@@ -140,17 +132,13 @@ class getinfo(Resource):
             current_user = get_jwt_identity()
             client_id = request.json.get('client_id', None)
             print(client_id,"---client_id")
-            return (pan_card[client_id]), 200
+            return PanClient.objects(client_id=client_id).first().to_json(), 200
         except Exception as e:
             print(e)
             return ({"msg": "client_id is not valid "}), 400
 
 
 
-@api.route('/hello')
-class HelloWorld(Resource):
-    def get(self):
-        return {'hello': 'world'}
 
 if __name__ == '__main__':
     app.run(debug=True)
