@@ -48,62 +48,102 @@ def isValidPanCardNo(panCardNo):
 pan_card={}
 # Provide a method to create access tokens. The create_access_token()
 # function is used to actually generate the token, a
-@app.route('/login', methods=['GET'])
-def login():
+@api.route('/login')
+class login(Resource):
 
    
-    # Identity can be any data that is json serializable
-    access_token = create_access_token(identity=time.time())
-    return jsonify(access_token=access_token), 200
+   def get(self):
+        # Identity can be any data that is json serializable
+        access_token = create_access_token(identity=time.time())
+        return (access_token)
 
 
 # Protect a view with jwt_required, which requires a valid access token
 # in the request to access.
-@app.route('/getclientid', methods=['POST'])
-@jwt_required
-def getclientid():
-    # Access the identity of the current user with get_jwt_identity
-    # current_user = get_jwt_identity()
+# @app.route('/getclientid', methods=['POST'])
+# @jwt_required
+# def getclientid():
+#     # Access the identity of the current user with get_jwt_identity
+#     # current_user = get_jwt_identity()
 
-    pannumber = request.json.get('pannumber', None)
-    if not pannumber:
-        return jsonify({"msg": "Missing pannumber parameter"}), 400
+#     pannumber = request.json.get('pannumber', None)
+#     if not pannumber:
+#         return jsonify({"msg": "Missing pannumber parameter"}), 400
 
-    if not  isValidPanCardNo(pannumber):
-        return jsonify({"msg": "Not a Valid pannumber format "}), 401
-    # print(pannumber)
+#     if not  isValidPanCardNo(pannumber):
+#         return jsonify({"msg": "Not a Valid pannumber format "}), 401
+#     # print(pannumber)
 
   
-    # initializing size of string  
-    N = 7
+#     # initializing size of string  
+#     N = 7
       
 
-    client_id = ''.join(random.choices(string.ascii_uppercase +
-                                 string.digits, k = N)) 
-    try:
-        pan_card[client_id]=get_pan_data(pannumber)
+#     client_id = ''.join(random.choices(string.ascii_uppercase +
+#                                  string.digits, k = N)) 
+#     try:
+#         pan_card[client_id]=get_pan_data(pannumber)
 
-    except:
-        return jsonify({"msg": "Sorry Backend error Try again..."}), 400
-
-
-
-    return jsonify(client_id=client_id), 200
+#     except:
+#         return jsonify({"msg": "Sorry Backend error Try again..."}), 400
 
 
 
-@app.route('/getinfo', methods=['POST'])
-@jwt_required
-def getinfo():
+#     return jsonify(client_id=client_id), 200
+
+
+@api.route('/getclientid')
+class Getclientid(Resource):
+    @api.doc(
+        "Get a specific user",
+        responses={
+            200: ("User data successfully sent"),
+            404: "User not found!",
+        },
+    )
     # Access the identity of the current user with get_jwt_identity
-    try:
-        current_user = get_jwt_identity()
-        client_id = request.json.get('client_id', None)
-        print(client_id,"---client_id")
-        return jsonify(pannumber=pan_card[client_id]), 200
-    except Exception as e:
-        print(e)
-        return jsonify({"msg": "client_id is not valid "}), 400
+    # current_user = get_jwt_identity()
+    @jwt_required
+    def post(self):
+        pannumber = request.json.get('pannumber', None)
+        if not pannumber:
+            return {"msg": "Missing pannumber parameter"}
+
+        if not  isValidPanCardNo(pannumber):
+            return {"msg": "Not a Valid pannumber format "}
+        # print(pannumber)
+
+      
+        # initializing size of string  
+        N = 7
+          
+
+        client_id = ''.join(random.choices(string.ascii_uppercase +
+                                     string.digits, k = N)) 
+        try:
+            pan_card[client_id]=get_pan_data(pannumber)
+
+        except:
+            return ({"msg": "Sorry Backend error Try again..."}), 400
+
+
+
+        return (client_id), 200
+
+
+@api.route('/getinfo')
+class getinfo(Resource):
+    # Access the identity of the current user with get_jwt_identity
+    @jwt_required
+    def post(self):
+        try:
+            current_user = get_jwt_identity()
+            client_id = request.json.get('client_id', None)
+            print(client_id,"---client_id")
+            return (pan_card[client_id]), 200
+        except Exception as e:
+            print(e)
+            return ({"msg": "client_id is not valid "}), 400
 
 
 
